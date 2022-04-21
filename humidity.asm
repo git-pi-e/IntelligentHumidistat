@@ -1,37 +1,38 @@
-;GROUP 71
-;PROBLEM 23
+;Group 9 Problem 23
 
 .MODEL TINY
 .DATA
 
 
-;8253 USED TO GENERATE CLOCK FOR ADC
+;8253 used to generate clock for ADC
 CNT0 EQU 20H
 CREG EQU 26H
 
 
-;8255(1)  INITIALISE
-PORT1A EQU 00H 	;CONTROLLING THE LCD
-PORT1B EQU 02H 	;INPUT TO LCD
-PORT1C EQU 04H 	;UPPER - ROW
-		        ;LOWER - COLUMN
+;initialise 8255A
+PORT1A EQU 00H 	;controlling the LCD
+PORT1B EQU 02H 	;input to LCD
+PORT1C EQU 04H 	;upper - row
+		        ;lower - column
 CREG1 EQU 06H
 
 
-;8255(2) USED FOR ADC
+;8255B is interfaced with ADC
 
-PORT2A EQU 10H 	;INPUT TO DI DEVICE
+PORT2A EQU 10H 	;input to DI device
 PORT2B EQU 12H 	;ADC
 PORT2C EQU 14H 	;PC1 - SOC OF ADC
-;PC3 - ADDC OF ADC (USED FOR SELECTING THE ;FIRST & SECOND INPUT CHANNEL OF ADC)
-;PC5 - EOC OF ADC
+				;PC3 - ADDC of ADC (used for selecting the ;first & second input channel of ADC)
+				;PC5 - EOC of ADC
 CREG2 EQU 16H
 
+;define temperature range
 temp_range db -35,-34,-33,-32,-31,-30,-29,-28,-27,-26,-25,-24,-23,-22,-21,-20,-19,-18,-17,-16,-15,-14,-13,-12,-11
 		   db -10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25
 		   db 26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59
 		   db 60,61,62,63,64,65
 
+;define humidity range
 humidity_range db 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36
 			   db 37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70
 			   db 71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100
@@ -45,67 +46,68 @@ T DB 30H,31H
 .CODE
 .STARTUP
 
-;INITIALIZE DS,SS,ES TO START OF RAM
+;initialize DS,SS,ES to the start of RAM
 MOV AX,08000H
 MOV DS,AX
 MOV SS,AX
 MOV ES,AX
 MOV SP,08FFEH
 
-;INITIALIZING 8253
+;initialize 8253 with control word
 MOV AL,00010110B
 OUT CREG,AL
 MOV AL,5
 OUT CNT0,AL
 
-;INITIALIZING 8255(1)
+;initialize 8255A with control word
 MOV AL,10000000B 
 OUT CREG1,AL
 CALL DELAY_2MS
 
-;INITIALIZING 8255(2)
+;initialize 8255b with control word for connecting to ADC
 MOV AL,10011010B 
 OUT CREG2,AL
 CALL DELAY_2MS
 
 X1:
-CALL FETCH_TEMP
-MOV AL,CURR_TEMP
-CALL FUNC
-LEA SI,TEMP_RANGE
+CALL FETCH_TEMP   		 ;fetch temperature
+MOV AL,CURR_TEMP  		 ;store current temperature in AL
+CALL FUNC 		  		 ;display temperature to LCD
+LEA SI,TEMP_RANGE 		 ;load offset of temperature range into SI
 DEC SI
-MOV CX,100
+MOV CX,100 
 
 CALL DELAY
 CALL DELAY
 CALL DELAY
 
 AGAIN:
-INC SI
-CMP [SI],AL
-LOOPNE AGAIN
+INC SI 					 ;increment offset of temperature range
+CMP [SI],AL 			 ;compare current temperature with value at offset
+LOOPNE AGAIN 			 ;loop if temperature is not equal to value at offset
 
-SUB SI,OFFSET TEMP_RANGE
-LEA DI,HUMIDITY_RANGE
-ADD DI,SI
-MOV BL,[DI]
+SUB SI,OFFSET TEMP_RANGE ;finds how far SI is from TEMP_RANGE offset
+LEA DI,HUMIDITY_RANGE 	 ;load offset of start of humidity range into DI
+ADD DI,SI 				 ;finds the offset at which the current humidity should be
+MOV BL,[DI] 			 ;moves the "should be" humidity into BL
+CALL FETCH_HUMIDITY		 ;fetch humidity
+MOV AL,CURR_HUMIDITY	 ;store current humidity in AL
+CALL FUNC				 ;display humidity to LCD
+CMP BL,CURR_HUMIDITY	 ;compare current humidity with "should be" humidity
+JAE X2					 ;if humidity is greater than "should be" humidity, humidifier doesn't need to on
+MOV AL,00001111B		 ;turn on PC7 of 8255A connection to humidifier circuit using Bit set-reset mode
+OUT CREG1,AL			 ;ouput to control register and switch on the humidifier
 
-CALL FETCH_HUMIDITY
-MOV AL,CURR_HUMIDITY
-CALL FUNC
-CMP BL,CURR_HUMIDITY
-JAE X2
-MOV AL,00001111B
-OUT CREG1,AL      ;SWITCHES ON THE HUMIDIFIER(LED)
 
-
-LOOP1:
+;if humidity is lower, loop until humidifer increases humidity to "should be" humidity
+LOOP1
 CALL DELAY_2MS
-CALL FETCH_HUMIDITY
-CMP BL,CURR_HUMIDITY
-JL LOOP1
-MOV AL,00001110B
-OUT CREG1,AL      ;SWITCHES OFF THE HUMIDIFIER(LED)
+CALL FETCH_HUMIDITY		 ;fetch humidity in loop
+CMP BL,CURR_HUMIDITY	 ;compare in loop
+JL LOOP1				 ;if humidity is lower, loop again
+
+MOV AL,00001110B		 ;if not, turn off the PC7 of 8255A connection to humidifier circuit 
+OUT CREG1,AL      		 ;ouput to control register and switch off the humidifier
 
 X2:
 CALL DELAY_2MS
