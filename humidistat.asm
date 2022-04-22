@@ -1,11 +1,30 @@
-;Group 9 Problem 23
+#make_bin#
 
-.MODEL TINY
-.DATA
+#LOAD_SEGMENT=FFFFh#
+#LOAD_OFFSET=0000h#
 
+#CS=0000h#
+#IP=0000h#
 
-;8253 used to generate clock for ADC
-CNT0 EQU 20H
+#DS=0000h#
+#ES=0000h#
+
+#SS=0000h#
+#SP=FFFEh#
+
+#AX=0000h#
+#BX=0000h#
+#CX=0000h#
+#DX=0000h#
+#SI=0000h#
+#DI=0000h#
+#BP=0000h#
+
+; add your code here
+         jmp     st1 
+         db     1021 dup(0)
+		 
+		 CNT0 EQU 20H
 CREG EQU 26H
 
 
@@ -39,14 +58,14 @@ humidity_range db 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,
 
 CURR_TEMP db ?
 CURR_HUMIDITY db ?
-TEMP db ?
+;TEMP db ?
 DAT2 DB 3 DUP(" ");
-T DB 30H,31H
+;T DB 30H,31H
 
-.CODE
-.STARTUP
 
-;initialize DS,SS,ES to the start of RAM
+;main program
+          
+st1:      cli 
 MOV AX,08000H
 MOV DS,AX
 MOV SS,AX
@@ -71,9 +90,9 @@ CALL DELAY_2MS
 
 X1:
 CALL FETCH_TEMP   		 ;fetch temperature
-MOV AL,CURR_TEMP  		 ;store current temperature in AL
+MOV AL, CS:CURR_TEMP  		 ;store current temperature in AL
 CALL FUNC 		  		 ;display temperature to LCD
-LEA SI,TEMP_RANGE 		 ;load offset of temperature range into SI
+LEA SI,CS:temp_range 		 ;load offset of temperature range into SI
 DEC SI
 MOV CX,100 
 
@@ -86,24 +105,24 @@ INC SI 					 ;increment offset of temperature range
 CMP [SI],AL 			 ;compare current temperature with value at offset
 LOOPNE AGAIN 			 ;loop if temperature is not equal to value at offset
 
-SUB SI,OFFSET TEMP_RANGE ;finds how far SI is from TEMP_RANGE offset
-LEA DI,HUMIDITY_RANGE 	 ;load offset of start of humidity range into DI
+SUB SI,OFFSET CS:temp_range ;finds how far SI is from TEMP_RANGE offset
+LEA DI,CS:humidity_range 	 ;load offset of start of humidity range into DI
 ADD DI,SI 				 ;finds the offset at which the current humidity should be
 MOV BL,[DI] 			 ;moves the "should be" humidity into BL
 CALL FETCH_HUMIDITY		 ;fetch humidity
-MOV AL,CURR_HUMIDITY	 ;store current humidity in AL
+MOV AL, CS:CURR_HUMIDITY	 ;store current humidity in AL
 CALL FUNC				 ;display humidity to LCD
-CMP BL,CURR_HUMIDITY	 ;compare current humidity with "should be" humidity
+CMP BL, CS:CURR_HUMIDITY	 ;compare current humidity with "should be" humidity
 JAE X2					 ;if humidity is greater than "should be" humidity, humidifier doesn't need to on
 MOV AL,00001111B		 ;turn on PC7 of 8255A connection to humidifier circuit using Bit set-reset mode
 OUT CREG1,AL			 ;ouput to control register and switch on the humidifier
 
 
 ;if humidity is lower, loop until humidifer increases humidity to "should be" humidity
-LOOP1
+LOOP1:
 CALL DELAY_2MS
 CALL FETCH_HUMIDITY		 ;fetch humidity in loop
-CMP BL,CURR_HUMIDITY	 ;compare in loop
+CMP BL, CS:CURR_HUMIDITY	 ;compare in loop
 JL LOOP1				 ;if humidity is lower, loop again
 
 MOV AL,00001110B		 ;if not, turn off the PC7 of 8255A connection to humidifier circuit 
@@ -112,8 +131,6 @@ OUT CREG1,AL      		 ;ouput to control register and switch off the humidifier
 X2:
 CALL DELAY_2MS
 JMP X1
-
-.EXIT
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;PROCEDURE TO FETCH CURRENT TEMPERATURE
@@ -156,7 +173,7 @@ MOV AL,10011010B ;INITIALIZING 8255(2)
 OUT CREG2,AL
 IN AL,PORT2A ;AL HAS THE CURRENT TEMPERATURE
 
-LEA SI,CURR_TEMP
+LEA SI, CS:CURR_TEMP
 MOV [SI],AL
 POP SI
 RET
@@ -190,19 +207,19 @@ OUT CREG2,AL
 MOV AL,00H	;GIVE ALE
 OUT CREG2,AL
 
-LOOP2:
+LOOP2_1:
 IN AL,PORT2C
 CALL DELAY_2MS
 AND AL,20H    ;CHECK FOR EOC    
 CMP AL,20H
-JNZ LOOP2
+JNZ LOOP2_1
 CALL DELAY_2MS
 
 MOV AL,10011010B ;INITIALIZING 8255(2)
 OUT CREG2,AL
 IN AL,PORT2A ;AL HAS THE CURRENT HUMIDITY
 
-LEA SI,CURR_HUMIDITY
+LEA SI, CS:CURR_HUMIDITY
 MOV [SI],AL
 POP SI
 RET
@@ -229,7 +246,7 @@ CALL DELAY
 
 POP AX
 PUSH AX
-LEA DI,DAT2
+LEA DI, CS:DAT2
 MOV BX,100D
 MOV DX,0
 DIV BX
@@ -346,5 +363,3 @@ DELAY_2S PROC
 	LOOP W5
 	RET
 DELAY_2S ENDP
-
-END
