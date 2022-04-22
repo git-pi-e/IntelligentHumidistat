@@ -1,0 +1,37 @@
+< THE SYMBOL TABLE >  humidistat.bin  --  emu8086 assembler version: 4.08 
+===================================================================================================
+Name                     	Offset    	Size      	Type      	Segment   
+===================================================================================================
+TEMP_RANGE               	00102     	1         	VAR       	(NOSEG)   
+HUMIDITY_RANGE           	00121     	1         	VAR       	(NOSEG)   
+CURR_TEMP                	00140     	1         	VAR       	(NOSEG)   
+CURR_HUMIDITY            	00141     	1         	VAR       	(NOSEG)   
+TEMP                     	00142     	1         	VAR       	(NOSEG)   
+DAT2                     	00143     	1         	VAR       	(NOSEG)   
+T                        	00146     	1         	VAR       	(NOSEG)   
+CODE                     	00148     	-1        	LABEL     	(NOSEG)   
+STARTUP                  	00148     	-1        	LABEL     	(NOSEG)   
+X1                       	0016A     	-1        	LABEL     	(NOSEG)   
+AGAIN                    	00183     	-1        	LABEL     	(NOSEG)   
+LOOP1                    	001A6     	-1        	LABEL     	(NOSEG)   
+X2                       	001B6     	-1        	LABEL     	(NOSEG)   
+FETCH_TEMP               	001C0     	-1        	NEAR      	(NOSEG)   
+LOOP2_1                  	001DD     	-1        	LABEL     	(NOSEG)   
+FETCH_HUMIDITY           	001F8     	-1        	NEAR      	(NOSEG)   
+LOOP2_2                  	00215     	-1        	LABEL     	(NOSEG)   
+FUNC                     	00230     	-1        	NEAR      	(NOSEG)   
+COMNDWRT                 	00290     	-1        	NEAR      	(NOSEG)   
+DATWRIT                  	0029D     	-1        	NEAR      	(NOSEG)   
+DELAY_2MS                	002AD     	-1        	NEAR      	(NOSEG)   
+HER                      	002B0     	-1        	LABEL     	(NOSEG)   
+DELAY                    	002B4     	-1        	NEAR      	(NOSEG)   
+W1                       	002B7     	-1        	LABEL     	(NOSEG)   
+DELAY_2S                 	002BF     	-1        	NEAR      	(NOSEG)   
+W2                       	002C2     	-1        	LABEL     	(NOSEG)   
+W3                       	002CC     	-1        	LABEL     	(NOSEG)   
+W4                       	002D6     	-1        	LABEL     	(NOSEG)   
+W5                       	002E0     	-1        	LABEL     	(NOSEG)   
+===================================================================================================
+[ 22-04-2022  --  06:04:22 PM ] 
+< END >
+ 

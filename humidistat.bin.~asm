@@ -1,5 +1,5 @@
 ;Group 9 Problem 23
- #make_bin#
+#make_bin#
 
 #LOAD_SEGMENT=FFFFh#
 #LOAD_OFFSET=0000h#
@@ -20,7 +20,7 @@
 #SI=0000h#
 #DI=0000h#
 #BP=0000h#
- 
+
 .MODEL TINY
 .DATA
 
@@ -31,20 +31,20 @@ CREG EQU 26H
 
 
 ;initialise 8255A
-PORT1A EQU 00H 	;controlling the LCD
-PORT1B EQU 02H 	;input to LCD
-PORT1C EQU 04H 	;upper - row
-		        ;lower - column
+PORT1A EQU 00H     ;controlling the LCD
+PORT1B EQU 02H     ;input to LCD
+PORT1C EQU 04H     ;upper - row
+;lower - column
 CREG1 EQU 06H
 
 
 ;8255B is interfaced with ADC
 
-PORT2A EQU 10H 	;input to DI device
-PORT2B EQU 12H 	;ADC
-PORT2C EQU 14H 	;PC1 - SOC OF ADC
-				;PC3 - ADDC of ADC (used for selecting the ;first & second input channel of ADC)
-				;PC5 - EOC of ADC
+PORT2A EQU 10H     ;input to DI device
+PORT2B EQU 12H     ;ADC
+PORT2C EQU 14H     ;PC1 - SOC OF ADC
+;PC3 - ADDC of ADC (used for selecting the ;first & second input channel of ADC)
+;PC5 - EOC of ADC
 CREG2 EQU 16H
 
 ;define temperature range
@@ -86,10 +86,10 @@ OUT CREG2,AL
 CALL DELAY_2MS
 
 X1:
-CALL FETCH_TEMP   		 ;fetch temperature
-MOV AL,CURR_TEMP  		 ;store current temperature in AL
-CALL FUNC 		  		 ;display temperature to LCD
-LEA SI,TEMP_RANGE 		 ;load offset of temperature range into SI
+CALL FETCH_TEMP            ;fetch temperature
+MOV AL,CURR_TEMP           ;store current temperature in AL
+CALL FUNC                    ;display temperature to LCD
+LEA SI,TEMP_RANGE          ;load offset of temperature range into SI
 DEC SI
 MOV CX,100
 
@@ -98,32 +98,32 @@ CALL DELAY
 CALL DELAY
 
 AGAIN:
-INC SI 					 ;increment offset of temperature range
-CMP [SI],AL 			 ;compare current temperature with value at offset
-LOOPNE AGAIN 			 ;loop if temperature is not equal to value at offset
+INC SI                      ;increment offset of temperature range
+CMP [SI],AL              ;compare current temperature with value at offset
+LOOPNE AGAIN              ;loop if temperature is not equal to value at offset
 
 SUB SI,OFFSET TEMP_RANGE ;finds how far SI is from TEMP_RANGE offset
-LEA DI,HUMIDITY_RANGE 	 ;load offset of start of humidity range into DI
-ADD DI,SI 				 ;finds the offset at which the current humidity should be
-MOV BL,[DI] 			 ;moves the "should be" humidity into BL
-CALL FETCH_HUMIDITY		 ;fetch humidity
-MOV AL,CURR_HUMIDITY	 ;store current humidity in AL
-CALL FUNC				 ;display humidity to LCD
-CMP BL,CURR_HUMIDITY	 ;compare current humidity with "should be" humidity
-JAE X2					 ;if humidity is greater than "should be" humidity, humidifier doesn't need to on
-MOV AL,00001111B		 ;turn on PC7 of 8255A connection to humidifier circuit using Bit set-reset mode
-OUT CREG1,AL			 ;ouput to control register and switch on the humidifier
+LEA DI,HUMIDITY_RANGE      ;load offset of start of humidity range into DI
+ADD DI,SI                  ;finds the offset at which the current humidity should be
+MOV BL,[DI]              ;moves the "should be" humidity into BL
+CALL FETCH_HUMIDITY         ;fetch humidity
+MOV AL,CURR_HUMIDITY     ;store current humidity in AL
+CALL FUNC                 ;display humidity to LCD
+CMP BL,CURR_HUMIDITY     ;compare current humidity with "should be" humidity
+JAE X2                     ;if humidity is greater than "should be" humidity, humidifier doesn't need to on
+MOV AL,00001111B         ;turn on PC7 of 8255A connection to humidifier circuit using Bit set-reset mode
+OUT CREG1,AL             ;ouput to control register and switch on the humidifier
 
 
 ;if humidity is lower, loop until humidifer increases humidity to "should be" humidity
 LOOP1:
 CALL DELAY_2MS
-CALL FETCH_HUMIDITY		 ;fetch humidity in loop
-CMP BL,CURR_HUMIDITY	 ;compare in loop
-JL LOOP1				 ;if humidity is lower, loop again
+CALL FETCH_HUMIDITY         ;fetch humidity in loop
+CMP BL,CURR_HUMIDITY     ;compare in loop
+JL LOOP1                 ;if humidity is lower, loop again
 
-MOV AL,00001110B		 ;if not, turn off the PC7 of 8255A connection to humidifier circuit
-OUT CREG1,AL      		 ;ouput to control register and switch off the humidifier
+MOV AL,00001110B         ;if not, turn off the PC7 of 8255A connection to humidifier circuit
+OUT CREG1,AL               ;ouput to control register and switch off the humidifier
 
 X2:
 CALL DELAY_2MS
@@ -139,13 +139,13 @@ PUSH SI
 ;MOV AL,20H
 ;OUT PORT2A,AL
 
-MOV AL,06H	;GIVE ADC
+MOV AL,06H    ;GIVE ADC
 OUT CREG2,AL
 
-MOV AL,00H	;GIVE ALE
+MOV AL,00H    ;GIVE ALE
 OUT CREG2,AL
 
-MOV AL,02H	;GIVE SOC
+MOV AL,02H    ;GIVE SOC
 OUT CREG2,AL
 
 MOV AL,01H   ;SET ALE
@@ -154,10 +154,10 @@ OUT CREG2,AL
 MOV AL,03H   ;SET SOC
 OUT CREG2,AL
 
-MOV AL,02H	;GIVE SOC
+MOV AL,02H    ;GIVE SOC
 OUT CREG2,AL
 
-MOV AL,00H	;GIVE ALE
+MOV AL,00H    ;GIVE ALE
 OUT CREG2,AL
 
 LOOP2_1:
@@ -185,13 +185,13 @@ FETCH_HUMIDITY PROC NEAR
 
 PUSH SI
 
-MOV AL,07H	;GIVE ADC
+MOV AL,07H    ;GIVE ADC
 OUT CREG2,AL
 
-MOV AL,00H	;GIVE ALE
+MOV AL,00H    ;GIVE ALE
 OUT CREG2,AL
 
-MOV AL,02H	;GIVE SOC
+MOV AL,02H    ;GIVE SOC
 OUT CREG2,AL
 
 MOV AL,01H   ;SET ALE
@@ -200,10 +200,10 @@ OUT CREG2,AL
 MOV AL,03H   ;SET SOC
 OUT CREG2,AL
 
-MOV AL,02H	;GIVE SOC
+MOV AL,02H    ;GIVE SOC
 OUT CREG2,AL
 
-MOV AL,00H	;GIVE ALE
+MOV AL,00H    ;GIVE ALE
 OUT CREG2,AL
 
 LOOP2_2:
@@ -289,16 +289,16 @@ COMNDWRT ENDP
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 DATWRIT PROC NEAR
-	PUSH DX  ;SAVE DX
-	MOV DX,PORT1B  ;DX=PORT B ADDRESS
-	OUT DX, AL ;ISSUE THE CHAR TO LCD
-	MOV AL, 00000101B ;RS=1, R/W=0, E=1 FOR H-TO-L PULSE
-	MOV DX, PORT1A ;PORT A ADDRESS
-	OUT DX, AL  ;MAKE ENABLE HIGH
-	MOV AL, 00000001B ;RS=1,R/W=0 AND E=0 FOR H-TO-L PULSE
-	OUT DX, AL
-	POP DX
-	RET
+PUSH DX  ;SAVE DX
+MOV DX,PORT1B  ;DX=PORT B ADDRESS
+OUT DX, AL ;ISSUE THE CHAR TO LCD
+MOV AL, 00000101B ;RS=1, R/W=0, E=1 FOR H-TO-L PULSE
+MOV DX, PORT1A ;PORT A ADDRESS
+OUT DX, AL  ;MAKE ENABLE HIGH
+MOV AL, 00000001B ;RS=1,R/W=0 AND E=0 FOR H-TO-L PULSE
+OUT DX, AL
+POP DX
+RET
 DATWRIT ENDP ;WRITING ON THE LCD ENDS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -306,7 +306,7 @@ DATWRIT ENDP ;WRITING ON THE LCD ENDS
 DELAY_2MS PROC NEAR
 MOV CX,100
 HER: NOP
- LOOP HER
+LOOP HER
 RET
 DELAY_2MS ENDP
 
@@ -314,53 +314,57 @@ DELAY_2MS ENDP
 
 ;DELAY IN THE CIRCUIT HERE THE DELAY OF 20 MILLISECOND IS PRODUCED
 DELAY PROC
-	MOV CX, 1325 ;1325*15.085 USEC = 20 MSEC
-	W1:
-		NOP
-		NOP
-		NOP
-		NOP
-		NOP
-	LOOP W1
-	RET
+MOV CX, 1325 ;1325*15.085 USEC = 20 MSEC
+W1:
+NOP
+NOP
+NOP
+NOP
+NOP
+LOOP W1
+RET
 DELAY ENDP
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 DELAY_2S PROC
-	MOV CX, 33125D
-	W2:
-		NOP
-		NOP
-		NOP
-		NOP
-		NOP
-	LOOP W2
-		MOV CX, 33125D
-	W3:
-		NOP
-		NOP
-		NOP
-		NOP
-		NOP
-	LOOP W3
-		MOV CX, 33125D
-	W4:
-		NOP
-		NOP
-		NOP
-		NOP
-		NOP
-	LOOP W4
-		MOV CX, 33125D
-	W5:
-		NOP
-		NOP
-		NOP
-		NOP
-		NOP
-	LOOP W5
-	RET
+MOV CX, 33125D
+W2:
+NOP
+NOP
+NOP
+NOP
+NOP
+LOOP W2
+MOV CX, 33125D
+W3:
+NOP
+NOP
+NOP
+NOP
+NOP
+LOOP W3
+MOV CX, 33125D
+W4:
+NOP
+NOP
+NOP
+NOP
+NOP
+LOOP W4
+MOV CX, 33125D
+W5:
+NOP
+NOP
+NOP
+NOP
+NOP
+LOOP W5
+RET
 DELAY_2S ENDP
 
 END
+
+
+
+; [SOURCE]: E:\Goa.BITS-Pilani\Fourth Sem 2021-22\Sem_4_Materials\CS F241 MuP\MuP_Design_Project\IntelligentHumidistat\humidistat.asm

@@ -1,0 +1,389 @@
+EMU8086 GENERATED LISTING. MACHINE CODE <- SOURCE.
+ 
+humidistat.bin -- emu8086 assembler version: 4.08  
+ 
+[ 22-04-2022  --  06:04:22 PM ] 
+ 
+===================================================================================================
+[LINE]     LOC: MACHINE CODE                          SOURCE
+===================================================================================================
+ 
+[   1]        :                                       ;Group 9 Problem 23
+[   2]        :                                       #make_bin#
+[   3]        :                                       
+[   4]        :                                       #LOAD_SEGMENT=FFFFh#
+[   5]        :                                       #LOAD_OFFSET=0000h#
+[   6]        :                                       
+[   7]        :                                       #CS=0000h#
+[   8]        :                                       #IP=0000h#
+[   9]        :                                       
+[  10]        :                                       #DS=0000h#
+[  11]        :                                       #ES=0000h#
+[  12]        :                                       
+[  13]        :                                       #SS=0000h#
+[  14]        :                                       #SP=FFFEh#
+[  15]        :                                       
+[  16]        :                                       #AX=0000h#
+[  17]        :                                       #BX=0000h#
+[  18]        :                                       #CX=0000h#
+[  19]        :                                       #DX=0000h#
+[  20]        :                                       #SI=0000h#
+[  21]        :                                       #DI=0000h#
+[  22]        :                                       #BP=0000h#
+[  23]        :                                       
+[  24]        :                                       .MODEL TINY
+[  25]    0100: EB 46                                 .DATA
+[  26]        :                                       
+[  27]        :                                       
+[  28]        :                                       ;8253 used to generate clock for ADC
+[  29]        :                                       CNT0 EQU 20H
+[  30]        :                                       CREG EQU 26H
+[  31]        :                                       
+[  32]        :                                       
+[  33]        :                                       ;initialise 8255A
+[  34]        :                                       PORT1A EQU 00H 	;controlling the LCD
+[  35]        :                                       PORT1B EQU 02H 	;input to LCD
+[  36]        :                                       PORT1C EQU 04H 	;upper - row
+[  37]        :                                       		        ;lower - column
+[  38]        :                                       CREG1 EQU 06H
+[  39]        :                                       
+[  40]        :                                       
+[  41]        :                                       ;8255B is interfaced with ADC
+[  42]        :                                       
+[  43]        :                                       PORT2A EQU 10H 	;input to DI device
+[  44]        :                                       PORT2B EQU 12H 	;ADC
+[  45]        :                                       PORT2C EQU 14H 	;PC1 - SOC OF ADC
+[  46]        :                                       				;PC3 - ADDC of ADC (used for selecting the ;first & second input channel of ADC)
+[  47]        :                                       				;PC5 - EOC of ADC
+[  48]        :                                       CREG2 EQU 16H
+[  49]        :                                       
+[  50]        :                                       ;define temperature range
+[  51]    0102: 0A 0B 0C 0D 0E 0F 10 11 12 13 14 15   temp_range db 10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40
+                16 17 18 19 1A 1B 1C 1D 1E 1F 20 21 
+                22 23 24 25 26 27 28                
+[  52]        :                                       
+[  53]        :                                       ;define humidity range
+[  54]    0121: 19 1A 1B 1C 1D 1E 1F 20 21 22 23 24   humidity_range db 25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55
+                25 26 27 28 29 2A 2B 2C 2D 2E 2F 30 
+                31 32 33 34 35 36 37                
+[  55]        :                                       
+[  56]    0140: 00                                    CURR_TEMP db ?
+[  57]    0141: 00                                    CURR_HUMIDITY db ?
+[  58]    0142: 00                                    TEMP db ?
+[  59]    0143: 20 20 20                              DAT2 DB 3 DUP(" ");
+[  60]    0146: 30 31                                 T DB 30H,31H
+[  61]        :                                       
+[  62]    0148:                                       .CODE
+[  63]    0148:                                       .STARTUP
+[  64]        :                                       
+[  65]        :                                       ;initialize DS,SS,ES to the start of RAM
+[  66]    0148: B8 00 80                              MOV AX,08000H
+[  67]    014B: 8E D8                                 MOV DS,AX
+[  68]    014D: 8E D0                                 MOV SS,AX
+[  69]    014F: 8E C0                                 MOV ES,AX
+[  70]    0151: BC FE 8F                              MOV SP,08FFEH
+[  71]        :                                       
+[  72]        :                                       ;initialize 8253 with control word
+[  73]    0154: B0 16                                 MOV AL,00010110B
+[  74]    0156: E6 26                                 OUT CREG,AL
+[  75]    0158: B0 05                                 MOV AL,5
+[  76]    015A: E6 20                                 OUT CNT0,AL
+[  77]        :                                       
+[  78]        :                                       ;initialize 8255A with control word
+[  79]    015C: B0 80                                 MOV AL,10000000B
+[  80]    015E: E6 06                                 OUT CREG1,AL
+[  81]    0160: E8 4A 01                              CALL DELAY_2MS
+[  82]        :                                       
+[  83]        :                                       ;initialize 8255b with control word for connecting to ADC
+[  84]    0163: B0 9A                                 MOV AL,10011010B
+[  85]    0165: E6 16                                 OUT CREG2,AL
+[  86]    0167: E8 43 01                              CALL DELAY_2MS
+[  87]        :                                       
+[  88]    016A:                                       X1:
+[  89]    016A: E8 53 00                              CALL FETCH_TEMP   		 ;fetch temperature
+[  90]    016D: A0 40 01                              MOV AL,CURR_TEMP  		 ;store current temperature in AL
+[  91]    0170: E8 BD 00                              CALL FUNC 		  		 ;display temperature to LCD
+[  92]    0173: BE 02 01                              LEA SI,TEMP_RANGE 		 ;load offset of temperature range into SI
+[  93]    0176: 4E                                    DEC SI
+[  94]    0177: B9 64 00                              MOV CX,100
+[  95]        :                                       
+[  96]    017A: E8 37 01                              CALL DELAY
+[  97]    017D: E8 34 01                              CALL DELAY
+[  98]    0180: E8 31 01                              CALL DELAY
+[  99]        :                                       
+[ 100]    0183:                                       AGAIN:
+[ 101]    0183: 46                                    INC SI 					 ;increment offset of temperature range
+[ 102]    0184: 38 04                                 CMP [SI],AL 			 ;compare current temperature with value at offset
+[ 103]    0186: E0 FB                                 LOOPNE AGAIN 			 ;loop if temperature is not equal to value at offset
+[ 104]        :                                       
+[ 105]    0188: 81 EE 02 01                           SUB SI,OFFSET TEMP_RANGE ;finds how far SI is from TEMP_RANGE offset
+[ 106]    018C: BF 21 01                              LEA DI,HUMIDITY_RANGE 	 ;load offset of start of humidity range into DI
+[ 107]    018F: 03 FE                                 ADD DI,SI 				 ;finds the offset at which the current humidity should be
+[ 108]    0191: 8A 1D                                 MOV BL,[DI] 			 ;moves the "should be" humidity into BL
+[ 109]    0193: E8 62 00                              CALL FETCH_HUMIDITY		 ;fetch humidity
+[ 110]    0196: A0 41 01                              MOV AL,CURR_HUMIDITY	 ;store current humidity in AL
+[ 111]    0199: E8 94 00                              CALL FUNC				 ;display humidity to LCD
+[ 112]    019C: 3A 1E 41 01                           CMP BL,CURR_HUMIDITY	 ;compare current humidity with "should be" humidity
+[ 113]    01A0: 73 14                                 JAE X2					 ;if humidity is greater than "should be" humidity, humidifier doesn't need to on
+[ 114]    01A2: B0 0F                                 MOV AL,00001111B		 ;turn on PC7 of 8255A connection to humidifier circuit using Bit set-reset mode
+[ 115]    01A4: E6 06                                 OUT CREG1,AL			 ;ouput to control register and switch on the humidifier
+[ 116]        :                                       
+[ 117]        :                                       
+[ 118]        :                                       ;if humidity is lower, loop until humidifer increases humidity to "should be" humidity
+[ 119]    01A6:                                       LOOP1:
+[ 120]    01A6: E8 04 01                              CALL DELAY_2MS
+[ 121]    01A9: E8 4C 00                              CALL FETCH_HUMIDITY		 ;fetch humidity in loop
+[ 122]    01AC: 3A 1E 41 01                           CMP BL,CURR_HUMIDITY	 ;compare in loop
+[ 123]    01B0: 7C F4                                 JL LOOP1				 ;if humidity is lower, loop again
+[ 124]        :                                       
+[ 125]    01B2: B0 0E                                 MOV AL,00001110B		 ;if not, turn off the PC7 of 8255A connection to humidifier circuit
+[ 126]    01B4: E6 06                                 OUT CREG1,AL      		 ;ouput to control register and switch off the humidifier
+[ 127]        :                                       
+[ 128]    01B6:                                       X2:
+[ 129]    01B6: E8 F4 00                              CALL DELAY_2MS
+[ 130]    01B9: EB AF                                 JMP X1
+[ 131]        :                                       
+[ 132]    01BB: B8 00 4C CD 21                        .EXIT
+[ 133]        :                                       
+[ 134]        :                                       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[ 135]        :                                       ;PROCEDURE TO FETCH CURRENT TEMPERATURE
+[ 136]    01C0:                                       FETCH_TEMP PROC NEAR
+[ 137]        :                                       
+[ 138]    01C0: 56                                    PUSH SI
+[ 139]        :                                       ;MOV AL,20H
+[ 140]        :                                       ;OUT PORT2A,AL
+[ 141]        :                                       
+[ 142]    01C1: B0 06                                 MOV AL,06H	;GIVE ADC
+[ 143]    01C3: E6 16                                 OUT CREG2,AL
+[ 144]        :                                       
+[ 145]    01C5: B0 00                                 MOV AL,00H	;GIVE ALE
+[ 146]    01C7: E6 16                                 OUT CREG2,AL
+[ 147]        :                                       
+[ 148]    01C9: B0 02                                 MOV AL,02H	;GIVE SOC
+[ 149]    01CB: E6 16                                 OUT CREG2,AL
+[ 150]        :                                       
+[ 151]    01CD: B0 01                                 MOV AL,01H   ;SET ALE
+[ 152]    01CF: E6 16                                 OUT CREG2,AL
+[ 153]        :                                       
+[ 154]    01D1: B0 03                                 MOV AL,03H   ;SET SOC
+[ 155]    01D3: E6 16                                 OUT CREG2,AL
+[ 156]        :                                       
+[ 157]    01D5: B0 02                                 MOV AL,02H	;GIVE SOC
+[ 158]    01D7: E6 16                                 OUT CREG2,AL
+[ 159]        :                                       
+[ 160]    01D9: B0 00                                 MOV AL,00H	;GIVE ALE
+[ 161]    01DB: E6 16                                 OUT CREG2,AL
+[ 162]        :                                       
+[ 163]    01DD:                                       LOOP2_1:
+[ 164]    01DD: E4 14                                 IN AL,PORT2C
+[ 165]    01DF: E8 CB 00                              CALL DELAY_2MS
+[ 166]    01E2: 24 20                                 AND AL,20H    ;CHECK FOR EOC
+[ 167]    01E4: 3C 20                                 CMP AL,20H
+[ 168]    01E6: 75 F5                                 JNZ LOOP2_1
+[ 169]    01E8: E8 C2 00                              CALL DELAY_2MS
+[ 170]        :                                       
+[ 171]    01EB: B0 9A                                 MOV AL,10011010B ;INITIALIZING 8255(2)
+[ 172]    01ED: E6 16                                 OUT CREG2,AL
+[ 173]    01EF: E4 10                                 IN AL,PORT2A ;AL HAS THE CURRENT TEMPERATURE
+[ 174]        :                                       
+[ 175]    01F1: BE 40 01                              LEA SI,CURR_TEMP
+[ 176]    01F4: 88 04                                 MOV [SI],AL
+[ 177]    01F6: 5E                                    POP SI
+[ 178]    01F7: C3                                    RET
+[ 179]        :                                       FETCH_TEMP ENDP
+[ 180]        :                                       
+[ 181]        :                                       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[ 182]        :                                       ; PROCEDURE TO GET THE CURRENT HUMIDITY
+[ 183]        :                                       
+[ 184]    01F8:                                       FETCH_HUMIDITY PROC NEAR
+[ 185]        :                                       
+[ 186]    01F8: 56                                    PUSH SI
+[ 187]        :                                       
+[ 188]    01F9: B0 07                                 MOV AL,07H	;GIVE ADC
+[ 189]    01FB: E6 16                                 OUT CREG2,AL
+[ 190]        :                                       
+[ 191]    01FD: B0 00                                 MOV AL,00H	;GIVE ALE
+[ 192]    01FF: E6 16                                 OUT CREG2,AL
+[ 193]        :                                       
+[ 194]    0201: B0 02                                 MOV AL,02H	;GIVE SOC
+[ 195]    0203: E6 16                                 OUT CREG2,AL
+[ 196]        :                                       
+[ 197]    0205: B0 01                                 MOV AL,01H   ;SET ALE
+[ 198]    0207: E6 16                                 OUT CREG2,AL
+[ 199]        :                                       
+[ 200]    0209: B0 03                                 MOV AL,03H   ;SET SOC
+[ 201]    020B: E6 16                                 OUT CREG2,AL
+[ 202]        :                                       
+[ 203]    020D: B0 02                                 MOV AL,02H	;GIVE SOC
+[ 204]    020F: E6 16                                 OUT CREG2,AL
+[ 205]        :                                       
+[ 206]    0211: B0 00                                 MOV AL,00H	;GIVE ALE
+[ 207]    0213: E6 16                                 OUT CREG2,AL
+[ 208]        :                                       
+[ 209]    0215:                                       LOOP2_2:
+[ 210]    0215: E4 14                                 IN AL,PORT2C
+[ 211]    0217: E8 93 00                              CALL DELAY_2MS
+[ 212]    021A: 24 20                                 AND AL,20H    ;CHECK FOR EOC
+[ 213]    021C: 3C 20                                 CMP AL,20H
+[ 214]    021E: 75 F5                                 JNZ LOOP2_2
+[ 215]    0220: E8 8A 00                              CALL DELAY_2MS
+[ 216]        :                                       
+[ 217]    0223: B0 9A                                 MOV AL,10011010B ;INITIALIZING 8255(2)
+[ 218]    0225: E6 16                                 OUT CREG2,AL
+[ 219]    0227: E4 10                                 IN AL,PORT2A ;AL HAS THE CURRENT HUMIDITY
+[ 220]        :                                       
+[ 221]    0229: BE 41 01                              LEA SI,CURR_HUMIDITY
+[ 222]    022C: 88 04                                 MOV [SI],AL
+[ 223]    022E: 5E                                    POP SI
+[ 224]    022F: C3                                    RET
+[ 225]        :                                       
+[ 226]        :                                       FETCH_HUMIDITY ENDP
+[ 227]        :                                       
+[ 228]        :                                       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[ 229]        :                                       
+[ 230]    0230:                                       FUNC PROC NEAR
+[ 231]    0230: 50                                    PUSH AX
+[ 232]    0231: 53                                    PUSH BX
+[ 233]    0232: B0 38                                 MOV AL,38H
+[ 234]    0234: E8 59 00                              CALL COMNDWRT
+[ 235]    0237: E8 7A 00                              CALL DELAY
+[ 236]    023A: E8 77 00                              CALL DELAY
+[ 237]    023D: E8 74 00                              CALL DELAY
+[ 238]    0240: B0 0E                                 MOV AL,0EH
+[ 239]    0242: E8 4B 00                              CALL COMNDWRT
+[ 240]        :                                       
+[ 241]    0245: B0 01                                 MOV AL, 01  ;CLEAR LCD
+[ 242]    0247: E8 46 00                              CALL COMNDWRT
+[ 243]    024A: E8 67 00                              CALL DELAY
+[ 244]    024D: E8 64 00                              CALL DELAY
+[ 245]        :                                       
+[ 246]    0250: 58                                    POP AX
+[ 247]    0251: 50                                    PUSH AX
+[ 248]    0252: BF 43 01                              LEA DI,DAT2
+[ 249]    0255: BB 64 00                              MOV BX,100D
+[ 250]    0258: BA 00 00                              MOV DX,0
+[ 251]    025B: F7 F3                                 DIV BX
+[ 252]    025D: 04 30                                 ADD AL,30H
+[ 253]    025F: E8 3B 00                              CALL DATWRIT ;ISSUE IT TO LCD
+[ 254]    0262: E8 4F 00                              CALL DELAY
+[ 255]    0265: E8 4C 00                              CALL DELAY
+[ 256]    0268: 8B C2                                 MOV AX,DX
+[ 257]    026A: BB 0A 00                              MOV BX,10D
+[ 258]    026D: BA 00 00                              MOV DX,0
+[ 259]    0270: F7 F3                                 DIV BX
+[ 260]    0272: 04 30                                 ADD AL,30H
+[ 261]    0274: E8 26 00                              CALL DATWRIT
+[ 262]    0277: E8 3A 00                              CALL DELAY
+[ 263]    027A: E8 37 00                              CALL DELAY
+[ 264]    027D: 8B C2                                 MOV AX,DX
+[ 265]    027F: BA 00 00                              MOV DX,0
+[ 266]    0282: 04 30                                 ADD AL,30H
+[ 267]    0284: E8 16 00                              CALL DATWRIT
+[ 268]    0287: E8 2A 00                              CALL DELAY
+[ 269]    028A: E8 27 00                              CALL DELAY
+[ 270]    028D: 5B                                    POP BX
+[ 271]    028E: 58                                    POP AX
+[ 272]        :                                       
+[ 273]    028F: C3                                    RET
+[ 274]        :                                       FUNC ENDP
+[ 275]        :                                       
+[ 276]        :                                       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[ 277]        :                                       
+[ 278]    0290:                                       COMNDWRT PROC ;THIS PROCEDURE WRITES COMMANDS TO LCD
+[ 279]    0290: E6 02                                 OUT PORT1B, AL  ;SEND THE CODE TO PORT B
+[ 280]    0292: B0 04                                 MOV AL, 00000100B ;RS=0,R/W=0,E=1 FOR H-TO-L PULSE
+[ 281]    0294: E6 00                                 OUT PORT1A, AL
+[ 282]    0296: 90                                    NOP
+[ 283]    0297: 90                                    NOP
+[ 284]    0298: B0 00                                 MOV AL, 00000000B ;RS=0,R/W=0,E=0 FOR H-TO-L PULSE
+[ 285]    029A: E6 00                                 OUT PORT1A, AL
+[ 286]    029C: C3                                    RET
+[ 287]        :                                       COMNDWRT ENDP
+[ 288]        :                                       
+[ 289]        :                                       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[ 290]        :                                       
+[ 291]    029D:                                       DATWRIT PROC NEAR
+[ 292]    029D: 52                                    	PUSH DX  ;SAVE DX
+[ 293]    029E: BA 02 00                              	MOV DX,PORT1B  ;DX=PORT B ADDRESS
+[ 294]    02A1: EE                                    	OUT DX, AL ;ISSUE THE CHAR TO LCD
+[ 295]    02A2: B0 05                                 	MOV AL, 00000101B ;RS=1, R/W=0, E=1 FOR H-TO-L PULSE
+[ 296]    02A4: BA 00 00                              	MOV DX, PORT1A ;PORT A ADDRESS
+[ 297]    02A7: EE                                    	OUT DX, AL  ;MAKE ENABLE HIGH
+[ 298]    02A8: B0 01                                 	MOV AL, 00000001B ;RS=1,R/W=0 AND E=0 FOR H-TO-L PULSE
+[ 299]    02AA: EE                                    	OUT DX, AL
+[ 300]    02AB: 5A                                    	POP DX
+[ 301]    02AC: C3                                    	RET
+[ 302]        :                                       DATWRIT ENDP ;WRITING ON THE LCD ENDS
+[ 303]        :                                       
+[ 304]        :                                       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[ 305]        :                                       
+[ 306]    02AD:                                       DELAY_2MS PROC NEAR
+[ 307]    02AD: B9 64 00                              MOV CX,100
+[ 308]    02B0: 90                                    HER: NOP
+[ 309]    02B1: E2 FD                                 LOOP HER
+[ 310]    02B3: C3                                    RET
+[ 311]        :                                       DELAY_2MS ENDP
+[ 312]        :                                       
+[ 313]        :                                       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[ 314]        :                                       
+[ 315]        :                                       ;DELAY IN THE CIRCUIT HERE THE DELAY OF 20 MILLISECOND IS PRODUCED
+[ 316]    02B4:                                       DELAY PROC
+[ 317]    02B4: B9 2D 05                              	MOV CX, 1325 ;1325*15.085 USEC = 20 MSEC
+[ 318]    02B7:                                       	W1:
+[ 319]    02B7: 90                                    		NOP
+[ 320]    02B8: 90                                    		NOP
+[ 321]    02B9: 90                                    		NOP
+[ 322]    02BA: 90                                    		NOP
+[ 323]    02BB: 90                                    		NOP
+[ 324]    02BC: E2 F9                                 	LOOP W1
+[ 325]    02BE: C3                                    	RET
+[ 326]        :                                       DELAY ENDP
+[ 327]        :                                       
+[ 328]        :                                       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[ 329]        :                                       
+[ 330]    02BF:                                       DELAY_2S PROC
+[ 331]    02BF: B9 65 81                              	MOV CX, 33125D
+[ 332]    02C2:                                       	W2:
+[ 333]    02C2: 90                                    		NOP
+[ 334]    02C3: 90                                    		NOP
+[ 335]    02C4: 90                                    		NOP
+[ 336]    02C5: 90                                    		NOP
+[ 337]    02C6: 90                                    		NOP
+[ 338]    02C7: E2 F9                                 	LOOP W2
+[ 339]    02C9: B9 65 81                              		MOV CX, 33125D
+[ 340]    02CC:                                       	W3:
+[ 341]    02CC: 90                                    		NOP
+[ 342]    02CD: 90                                    		NOP
+[ 343]    02CE: 90                                    		NOP
+[ 344]    02CF: 90                                    		NOP
+[ 345]    02D0: 90                                    		NOP
+[ 346]    02D1: E2 F9                                 	LOOP W3
+[ 347]    02D3: B9 65 81                              		MOV CX, 33125D
+[ 348]    02D6:                                       	W4:
+[ 349]    02D6: 90                                    		NOP
+[ 350]    02D7: 90                                    		NOP
+[ 351]    02D8: 90                                    		NOP
+[ 352]    02D9: 90                                    		NOP
+[ 353]    02DA: 90                                    		NOP
+[ 354]    02DB: E2 F9                                 	LOOP W4
+[ 355]    02DD: B9 65 81                              		MOV CX, 33125D
+[ 356]    02E0:                                       	W5:
+[ 357]    02E0: 90                                    		NOP
+[ 358]    02E1: 90                                    		NOP
+[ 359]    02E2: 90                                    		NOP
+[ 360]    02E3: 90                                    		NOP
+[ 361]    02E4: 90                                    		NOP
+[ 362]    02E5: E2 F9                                 	LOOP W5
+[ 363]    02E7: C3                                    	RET
+[ 364]        :                                       DELAY_2S ENDP
+[ 365]        :                                       
+[ 366]        :                                       END
+[ 367]        :                                       
+ 
+===================================================================================================
+ 
+
+
+
+
+===================================================================================================
