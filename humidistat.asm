@@ -1,30 +1,11 @@
-#make_bin#
+;Group 9 Problem 23
 
-#LOAD_SEGMENT=FFFFh#
-#LOAD_OFFSET=0000h#
+.MODEL TINY
+.DATA
 
-#CS=0000h#
-#IP=0000h#
 
-#DS=0000h#
-#ES=0000h#
-
-#SS=0000h#
-#SP=FFFEh#
-
-#AX=0000h#
-#BX=0000h#
-#CX=0000h#
-#DX=0000h#
-#SI=0000h#
-#DI=0000h#
-#BP=0000h#
-
-; add your code here
-         jmp     st1 
-         db     1021 dup(0)
-		 
-		 CNT0 EQU 20H
+;8253 used to generate clock for ADC
+CNT0 EQU 20H
 CREG EQU 26H
 
 
@@ -53,14 +34,14 @@ humidity_range db 25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45
 
 CURR_TEMP db ?
 CURR_HUMIDITY db ?
-;TEMP db ?
+TEMP db ?
 DAT2 DB 3 DUP(" ");
-;T DB 30H,31H
+T DB 30H,31H
 
+.CODE
+.STARTUP
 
-;main program
-          
-st1:      cli 
+;initialize DS,SS,ES to the start of RAM
 MOV AX,08000H
 MOV DS,AX
 MOV SS,AX
@@ -74,22 +55,22 @@ MOV AL,5
 OUT CNT0,AL
 
 ;initialize 8255A with control word
-MOV AL,10000000B 
+MOV AL,10000000B
 OUT CREG1,AL
 CALL DELAY_2MS
 
 ;initialize 8255b with control word for connecting to ADC
-MOV AL,10011010B 
+MOV AL,10011010B
 OUT CREG2,AL
 CALL DELAY_2MS
 
 X1:
 CALL FETCH_TEMP   		 ;fetch temperature
-MOV AL, CS:CURR_TEMP  		 ;store current temperature in AL
+MOV AL,CURR_TEMP  		 ;store current temperature in AL
 CALL FUNC 		  		 ;display temperature to LCD
-LEA SI,CS:temp_range 		 ;load offset of temperature range into SI
+LEA SI,TEMP_RANGE 		 ;load offset of temperature range into SI
 DEC SI
-MOV CX,100 
+MOV CX,100
 
 CALL DELAY
 CALL DELAY
@@ -100,14 +81,14 @@ INC SI 					 ;increment offset of temperature range
 CMP [SI],AL 			 ;compare current temperature with value at offset
 LOOPNE AGAIN 			 ;loop if temperature is not equal to value at offset
 
-SUB SI,OFFSET CS:temp_range ;finds how far SI is from TEMP_RANGE offset
-LEA DI,CS:humidity_range 	 ;load offset of start of humidity range into DI
+SUB SI,OFFSET TEMP_RANGE ;finds how far SI is from TEMP_RANGE offset
+LEA DI,HUMIDITY_RANGE 	 ;load offset of start of humidity range into DI
 ADD DI,SI 				 ;finds the offset at which the current humidity should be
 MOV BL,[DI] 			 ;moves the "should be" humidity into BL
 CALL FETCH_HUMIDITY		 ;fetch humidity
-MOV AL, CS:CURR_HUMIDITY	 ;store current humidity in AL
+MOV AL,CURR_HUMIDITY	 ;store current humidity in AL
 CALL FUNC				 ;display humidity to LCD
-CMP BL, CS:CURR_HUMIDITY	 ;compare current humidity with "should be" humidity
+CMP BL,CURR_HUMIDITY	 ;compare current humidity with "should be" humidity
 JAE X2					 ;if humidity is greater than "should be" humidity, humidifier doesn't need to on
 MOV AL,00001111B		 ;turn on PC7 of 8255A connection to humidifier circuit using Bit set-reset mode
 OUT CREG1,AL			 ;ouput to control register and switch on the humidifier
@@ -117,15 +98,17 @@ OUT CREG1,AL			 ;ouput to control register and switch on the humidifier
 LOOP1:
 CALL DELAY_2MS
 CALL FETCH_HUMIDITY		 ;fetch humidity in loop
-CMP BL, CS:CURR_HUMIDITY	 ;compare in loop
+CMP BL,CURR_HUMIDITY	 ;compare in loop
 JL LOOP1				 ;if humidity is lower, loop again
 
-MOV AL,00001110B		 ;if not, turn off the PC7 of 8255A connection to humidifier circuit 
+MOV AL,00001110B		 ;if not, turn off the PC7 of 8255A connection to humidifier circuit
 OUT CREG1,AL      		 ;ouput to control register and switch off the humidifier
 
 X2:
 CALL DELAY_2MS
 JMP X1
+
+.EXIT
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;PROCEDURE TO FETCH CURRENT TEMPERATURE
@@ -135,7 +118,7 @@ PUSH SI
 ;MOV AL,20H
 ;OUT PORT2A,AL
 
-MOV AL,06H	;GIVE ADC	
+MOV AL,06H	;GIVE ADC
 OUT CREG2,AL
 
 MOV AL,00H	;GIVE ALE
@@ -151,7 +134,7 @@ MOV AL,03H   ;SET SOC
 OUT CREG2,AL
 
 MOV AL,02H	;GIVE SOC
-OUT CREG2,AL	
+OUT CREG2,AL
 
 MOV AL,00H	;GIVE ALE
 OUT CREG2,AL
@@ -159,7 +142,7 @@ OUT CREG2,AL
 LOOP2:
 IN AL,PORT2C
 CALL DELAY_2MS
-AND AL,20H    ;CHECK FOR EOC    
+AND AL,20H    ;CHECK FOR EOC
 CMP AL,20H
 JNZ LOOP2
 CALL DELAY_2MS
@@ -168,7 +151,7 @@ MOV AL,10011010B ;INITIALIZING 8255(2)
 OUT CREG2,AL
 IN AL,PORT2A ;AL HAS THE CURRENT TEMPERATURE
 
-LEA SI, CS:CURR_TEMP
+LEA SI,CURR_TEMP
 MOV [SI],AL
 POP SI
 RET
@@ -181,7 +164,7 @@ FETCH_HUMIDITY PROC NEAR
 
 PUSH SI
 
-MOV AL,07H	;GIVE ADC	
+MOV AL,07H	;GIVE ADC
 OUT CREG2,AL
 
 MOV AL,00H	;GIVE ALE
@@ -197,24 +180,24 @@ MOV AL,03H   ;SET SOC
 OUT CREG2,AL
 
 MOV AL,02H	;GIVE SOC
-OUT CREG2,AL	
+OUT CREG2,AL
 
 MOV AL,00H	;GIVE ALE
 OUT CREG2,AL
 
-LOOP2_1:
+LOOP2:
 IN AL,PORT2C
 CALL DELAY_2MS
-AND AL,20H    ;CHECK FOR EOC    
+AND AL,20H    ;CHECK FOR EOC
 CMP AL,20H
-JNZ LOOP2_1
+JNZ LOOP2
 CALL DELAY_2MS
 
 MOV AL,10011010B ;INITIALIZING 8255(2)
 OUT CREG2,AL
 IN AL,PORT2A ;AL HAS THE CURRENT HUMIDITY
 
-LEA SI, CS:CURR_HUMIDITY
+LEA SI,CURR_HUMIDITY
 MOV [SI],AL
 POP SI
 RET
@@ -241,26 +224,26 @@ CALL DELAY
 
 POP AX
 PUSH AX
-LEA DI, CS:DAT2
+LEA DI,DAT2
 MOV BX,100D
 MOV DX,0
 DIV BX
 ADD AL,30H
 CALL DATWRIT ;ISSUE IT TO LCD
 CALL DELAY
-CALL DELAY       
+CALL DELAY
 MOV AX,DX
-MOV BX,10D 
+MOV BX,10D
 MOV DX,0
 DIV BX
 ADD AL,30H
 CALL DATWRIT
 CALL DELAY
 CALL DELAY
-MOV AX,DX 
+MOV AX,DX
 MOV DX,0
 ADD AL,30H
-CALL DATWRIT   
+CALL DATWRIT
 CALL DELAY
 CALL DELAY
 POP BX
@@ -276,7 +259,7 @@ OUT PORT1B, AL  ;SEND THE CODE TO PORT B
 MOV AL, 00000100B ;RS=0,R/W=0,E=1 FOR H-TO-L PULSE
 OUT PORT1A, AL
 NOP
-NOP	
+NOP
 MOV AL, 00000000B ;RS=0,R/W=0,E=0 FOR H-TO-L PULSE
 OUT PORT1A, AL
 RET
@@ -285,7 +268,7 @@ COMNDWRT ENDP
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 DATWRIT PROC NEAR
-	PUSH DX  ;SAVE DX 
+	PUSH DX  ;SAVE DX
 	MOV DX,PORT1B  ;DX=PORT B ADDRESS
 	OUT DX, AL ;ISSUE THE CHAR TO LCD
 	MOV AL, 00000101B ;RS=1, R/W=0, E=1 FOR H-TO-L PULSE
@@ -311,7 +294,7 @@ DELAY_2MS ENDP
 ;DELAY IN THE CIRCUIT HERE THE DELAY OF 20 MILLISECOND IS PRODUCED
 DELAY PROC
 	MOV CX, 1325 ;1325*15.085 USEC = 20 MSEC
-	W1: 
+	W1:
 		NOP
 		NOP
 		NOP
@@ -319,37 +302,37 @@ DELAY PROC
 		NOP
 	LOOP W1
 	RET
-DELAY ENDP 
+DELAY ENDP
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 DELAY_2S PROC
-	MOV CX, 33125D 
-	W2: 
+	MOV CX, 33125D
+	W2:
 		NOP
 		NOP
 		NOP
 		NOP
 		NOP
 	LOOP W2
-		MOV CX, 33125D 
-	W3: 
+		MOV CX, 33125D
+	W3:
 		NOP
 		NOP
 		NOP
 		NOP
 		NOP
 	LOOP W3
-		MOV CX, 33125D 
-	W4: 
+		MOV CX, 33125D
+	W4:
 		NOP
 		NOP
 		NOP
 		NOP
 		NOP
 	LOOP W4
-		MOV CX, 33125D 
-	W5: 
+		MOV CX, 33125D
+	W5:
 		NOP
 		NOP
 		NOP
@@ -358,3 +341,5 @@ DELAY_2S PROC
 	LOOP W5
 	RET
 DELAY_2S ENDP
+
+END
