@@ -91,7 +91,7 @@ MOV AL,CURR_TEMP           ;store current temperature in AL
 CALL FUNC                    ;display temperature to LCD
 LEA SI,TEMP_RANGE          ;load offset of temperature range into SI
 DEC SI
-MOV CX,100
+MOV CX,30
 
 CALL DELAY
 CALL DELAY

@@ -2,7 +2,7 @@ EMU8086 GENERATED LISTING. MACHINE CODE <- SOURCE.
  
 humidistat.bin -- emu8086 assembler version: 4.08  
  
-[ 22-04-2022  --  06:04:22 PM ] 
+[ 22-04-2022  --  06:09:18 PM ] 
  
 ===================================================================================================
 [LINE]     LOC: MACHINE CODE                          SOURCE
@@ -105,7 +105,7 @@ humidistat.bin -- emu8086 assembler version: 4.08
 [  91]    0170: E8 BD 00                              CALL FUNC 		  		 ;display temperature to LCD
 [  92]    0173: BE 02 01                              LEA SI,TEMP_RANGE 		 ;load offset of temperature range into SI
 [  93]    0176: 4E                                    DEC SI
-[  94]    0177: B9 64 00                              MOV CX,100
+[  94]    0177: B9 1E 00                              MOV CX,30
 [  95]        :                                       
 [  96]    017A: E8 37 01                              CALL DELAY
 [  97]    017D: E8 34 01                              CALL DELAY
